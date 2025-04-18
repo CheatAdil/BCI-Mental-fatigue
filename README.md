@@ -137,9 +137,12 @@ Happy modeling! 🎉
 
 ```
 BCI-MENTAL-FATIGUE/
-├── data/                     # raw & processed data (not under version control)
-│   ├── raw/
-│   └── processed/
+├── processed/                     # raw & processed data (not under version control)
+│   └── <subject_name>/
+│       ├── eeg.npy
+│       ├── eog.npy  
+│       ├── features.npy
+│       └── labels.npy 
 │
 ├── ml/                       # Python package for your code
 │   ├── data/                 # data loading & preprocessing
