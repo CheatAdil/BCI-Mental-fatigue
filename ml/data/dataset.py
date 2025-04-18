@@ -28,5 +28,5 @@ class EEGDataset(Dataset):
         x, y = self.samples[idx]
         # to torch tensors
         x = torch.tensor(x, dtype=torch.float32)
-        y = torch.tensor(y, dtype=torch.long)
+        y = torch.tensor(y, dtype=torch.float32)
         return x, y
