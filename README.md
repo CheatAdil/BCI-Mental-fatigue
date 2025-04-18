@@ -70,7 +70,7 @@ What happens:
 
 ---
 
-## 📊 4. Monitoring with TensorBoard
+<!-- ## 📊 4. Monitoring with TensorBoard
 
 To visualize training curves, open another terminal and run:
 
@@ -83,7 +83,7 @@ Then open the displayed URL (e.g. http://localhost:6006) in your browser to see:
 - **Train loss** (MSE) over epochs
 - **Val loss**, **Val MSE**, **MAE**, **R²** metrics over epochs
 
----
+--- -->
 
 ## ⚙️ 5. Customization & Future Runs
 
@@ -130,7 +130,7 @@ Happy modeling! 🎉
 
 
 
-
+---
 
 
 ## Full hierarchy
