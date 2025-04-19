@@ -8,6 +8,7 @@ from torch.optim import Adam
 
 from ml.data.dataset import EEGDataset
 from ml.models.eeg_mlp import EEGMLP
+from ml.models.cnn_1d import CNN1D
 from ml.engines.trainer import Trainer
 
 # --- Config ---
@@ -35,7 +36,8 @@ val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
 sample_x, _ = next(iter(train_loader))
 input_dim   = sample_x.shape[1]
 
-model     = EEGMLP(input_dim=input_dim, hidden_dims=hidden_dims)
+# model     = EEGMLP(input_dim=input_dim, hidden_dims=hidden_dims)
+model     = CNN1D(input_dim=input_dim)
 model     = model.to(device)
 
 # --- Training ---

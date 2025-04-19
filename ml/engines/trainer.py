@@ -4,14 +4,8 @@ import torch
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-
 from datetime import datetime
 from pathlib import Path
-
-# each run logs to logs/<timestamp>/
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_dir = Path("logs") / timestamp
-log_dir.mkdir(parents=True, exist_ok=True)
 
 class Trainer:
     def __init__(self,
@@ -24,6 +18,11 @@ class Trainer:
                  lr_scheduler: torch.optim.lr_scheduler._LRScheduler = None,
                  work_dir: str = "./"):
         
+        # each run logs to logs/<timestamp>/
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_dir = Path("logs") / Path(f"{model.__class__.__name__}") / timestamp 
+        log_dir.mkdir(parents=True, exist_ok=True)
+
         self.model        = model.to(device)
         self.criterion    = criterion
         self.optimizer    = optimizer
@@ -79,16 +78,16 @@ class Trainer:
         mse = mean_squared_error(targets_all, preds_all)
         mae = mean_absolute_error(targets_all, preds_all)
         r2  = r2_score(targets_all, preds_all)
-
         avg_loss = running_loss / len(self.val_loader)
+
         # log to TensorBoard
         self.writer.add_scalar("val/loss", avg_loss, epoch)
         self.writer.add_scalar("val/mse", mse, epoch)
         self.writer.add_scalar("val/mae", mae, epoch)
         self.writer.add_scalar("val/r2", r2, epoch)
 
-        print(f"Val Epoch {epoch}: Loss={avg_loss:.4f}, MSE={mse:.4f}, "
-              f"MAE={mae:.4f}, R2={r2:.4f}")
+        # log to console
+        print(f"Val Epoch {epoch}: Loss={avg_loss:.4f}, MSE = {mse:.4f}, MAE = {mae:.4f}, R2={r2:.4f}")
         return avg_loss
     
 
