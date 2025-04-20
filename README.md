@@ -131,7 +131,30 @@ Happy modeling! 🎉
 
 
 ---
+## 🧠7. Mental Fatigue Detection
+After training your model, you can use the real-time mental fatigue detection script to continuously monitor EEG signals for signs of fatigue.
 
+From the project root, run:
+
+```bash
+python scripts/main.py
+```
+
+The script will automatically find and load the most recently trained model
+
+### Command-line Options
+
+You can customize the detection script with several options:
+
+```bash
+python scripts/main.py --model /path/to/model.pth --threshold 0.7 --interval 1.0
+````
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--model` | Path to a specific model checkpoint | Auto-detects latest model |
+| `--input_dim` | Input dimension for the model | 129 |
+| `--threshold` | Fatigue detection threshold (0.0-1.0) | 0.7 |
+| `--interval` | Time between samples (seconds) | 1.0 |
 
 ## Full hierarchy
 

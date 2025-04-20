@@ -36,8 +36,8 @@ val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
 sample_x, _ = next(iter(train_loader))
 input_dim   = sample_x.shape[1]
 
-# model     = EEGMLP(input_dim=input_dim, hidden_dims=hidden_dims)
-model     = CNN1D(input_dim=input_dim)
+model     = EEGMLP(input_dim=input_dim, hidden_dims=hidden_dims)
+# model     = CNN1D(input_dim=input_dim)
 model     = model.to(device)
 
 # --- Training ---
