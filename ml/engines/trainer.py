@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import torch
+import logging
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -18,10 +19,14 @@ class Trainer:
                  lr_scheduler: torch.optim.lr_scheduler._LRScheduler = None,
                  work_dir: str = "./"):
         
+        
         # each run logs to logs/<timestamp>/
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_dir = Path("logs") / Path(f"{model.__class__.__name__}") / timestamp 
         log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Set up logging
+        self.setup_logging(log_dir)
 
         self.model        = model.to(device)
         self.criterion    = criterion
@@ -34,6 +39,26 @@ class Trainer:
         self.best_metric  = float('inf')
         self.best_loss    = float('inf')
 
+        logging.info(f"Trainer initialized. Model: {model.__class__.__name__}, Log Dir: {log_dir}")
+        logging.info(f"with the following hyperparameters:")
+        logging.info(f"  - batch size: {train_loader.batch_size}")
+        logging.info(f"  - learning rate: {optimizer.param_groups[0]['lr']}")
+        logging.info(f"  - optimizer: {optimizer.__class__.__name__}")
+        logging.info(f"  - criterion: {criterion.__class__.__name__}")
+        logging.info(f"  - device: {device}")
+        logging.info(f"  - train dataset size: {len(train_loader.dataset)}")
+
+
+    def setup_logging(self, log_dir: Path):
+        log_file = log_dir / "train.log"
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s | %(levelname)s | %(message)s",
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ]
+        )
 
     def train_epoch(self, epoch: int):
         self.model.train()
@@ -50,6 +75,7 @@ class Trainer:
             running_loss += loss.item()
         avg_loss = running_loss / len(self.train_loader)
         self.writer.add_scalar("train/loss", avg_loss, epoch)
+        logging.info(f"[Train] Epoch {epoch} | Loss: {avg_loss:.4f}")
         return avg_loss
 
     def validate(self, epoch: int):
@@ -87,7 +113,8 @@ class Trainer:
         self.writer.add_scalar("val/r2", r2, epoch)
 
         # log to console
-        print(f"Val Epoch {epoch}: Loss={avg_loss:.4f}, MSE = {mse:.4f}, MAE = {mae:.4f}, R2={r2:.4f}")
+        # print(f"Val Epoch {epoch}: Loss={avg_loss:.4f}, MSE = {mse:.4f}, MAE = {mae:.4f}, R2={r2:.4f}")
+        logging.info(f"[Val] Epoch {epoch} | Loss: {avg_loss:.4f} | MSE: {mse:.4f} | MAE: {mae:.4f} | R2: {r2:.4f}")
         return avg_loss
     
 
@@ -104,6 +131,7 @@ class Trainer:
                 self.save_checkpoint(epoch, best=True)
             elif epoch % checkpoint_freq == 0:
                 self.save_checkpoint(epoch, best=False)
+    
 
     def save_checkpoint(self, epoch: int, best: bool = False):
         state = {
@@ -120,6 +148,8 @@ class Trainer:
         if best:
             best_path = os.path.join(cwd, "best.pth")
             torch.save(state, best_path)
-            print(f"Saved best model to {best_path}\n")
+            # print(f"Saved best model to {best_path}\n")
+            logging.info(f"Saved BEST checkpoint to {best_path}\n")
         else:
-            print(f"Saved checkpoint to {path}\n")
+            # print(f"Saved checkpoint to {path}\n")
+            logging.info(f"Saved checkpoint to {path}\n")
