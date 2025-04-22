@@ -137,7 +137,7 @@ After training your model, you can use the real-time mental fatigue detection sc
 From the project root, run:
 
 ```bash
-python scripts/main.py
+python main.py
 ```
 
 The script will automatically find and load the most recently trained model
@@ -147,7 +147,7 @@ The script will automatically find and load the most recently trained model
 You can customize the detection script with several options:
 
 ```bash
-python scripts/main.py --model /path/to/model.pth --threshold 0.7 --interval 1.0
+python main.py --model /path/to/model.pth --threshold 0.7 --interval 1.0
 ````
 | Option | Description | Default |
 |--------|-------------|---------|

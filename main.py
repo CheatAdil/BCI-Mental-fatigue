@@ -75,8 +75,6 @@ class MentalFatigueDetector:
     def preprocess_sample(self, sample):
         """
         Preprocess the raw EEG sample to match the expected input format of the model
-
-        You may need to adjust this based on your specific preprocessing pipeline
         """
         # Convert to tensor
         sample_tensor = torch.tensor(sample, dtype=torch.float32).to(self.device)
