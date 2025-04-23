@@ -1,7 +1,9 @@
+# ml/engines/trainer.py
 import os
 import numpy as np
 import torch
 import logging
+import optuna
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -47,6 +49,8 @@ class Trainer:
         logging.info(f"  - criterion: {criterion.__class__.__name__}")
         logging.info(f"  - device: {device}")
         logging.info(f"  - train dataset size: {len(train_loader.dataset)}")
+        if val_loader:
+             logging.info(f"  - val dataset size: {len(val_loader.dataset)}")
 
 
     def setup_logging(self, log_dir: Path):
@@ -80,7 +84,7 @@ class Trainer:
 
     def validate(self, epoch: int):
         if self.val_loader is None:
-            return None
+            return None, {} # Return loss and metrics dict
         self.model.eval()
         preds_all, targets_all = [], []
         running_loss = 0.0
@@ -101,37 +105,59 @@ class Trainer:
         targets_all = np.concatenate(targets_all)
 
         # compute regression metrics
-        mse = mean_squared_error(targets_all, preds_all)
-        mae = mean_absolute_error(targets_all, preds_all)
-        r2  = r2_score(targets_all, preds_all)
+        metrics = {}
+        try:
+            metrics['mse'] = mean_squared_error(targets_all, preds_all)
+            metrics['mae'] = mean_absolute_error(targets_all, preds_all)
+            metrics['r2']  = r2_score(targets_all, preds_all)
+        except ValueError as e: # Handle potential errors if predictions are NaN/inf
+             logging.error(f"Error calculating metrics: {e}. Setting metrics to NaN.")
+             metrics['mse'] = float('nan')
+             metrics['mae'] = float('nan')
+             metrics['r2'] = float('nan')
+
         avg_loss = running_loss / len(self.val_loader)
 
         # log to TensorBoard
         self.writer.add_scalar("val/loss", avg_loss, epoch)
-        self.writer.add_scalar("val/mse", mse, epoch)
-        self.writer.add_scalar("val/mae", mae, epoch)
-        self.writer.add_scalar("val/r2", r2, epoch)
+        self.writer.add_scalar("val/mse", metrics['mse'], epoch)
+        self.writer.add_scalar("val/mae", metrics['mae'], epoch)
+        self.writer.add_scalar("val/r2", metrics['r2'], epoch)
 
-        # log to console
-        # print(f"Val Epoch {epoch}: Loss={avg_loss:.4f}, MSE = {mse:.4f}, MAE = {mae:.4f}, R2={r2:.4f}")
-        logging.info(f"[Val] Epoch {epoch} | Loss: {avg_loss:.4f} | MSE: {mse:.4f} | MAE: {mae:.4f} | R2: {r2:.4f}")
-        return avg_loss
-    
+        # Log final validation metrics for the epoch
+        logging.info(f"[Val] Epoch {epoch} | Loss: {avg_loss:.4f} | MSE: {metrics['mse']:.4f} | MAE: {metrics['mae']:.4f} | R2: {metrics['r2']:.4f}")
+        return avg_loss, metrics # Return loss and metrics dict
 
-    def fit(self, n_epochs: int, checkpoint_freq: int = 1):
+
+    def fit(self, n_epochs: int, checkpoint_freq: int = 1, trial: 'optuna.trial.Trial' = None): # Add trial argument
+        best_val_loss_epoch = float('inf')
         for epoch in range(1, n_epochs + 1):
             train_loss = self.train_epoch(epoch)
-            val_loss   = self.validate(epoch)
+            val_loss, metrics = self.validate(epoch) # Unpack metrics
+
             if self.scheduler and val_loss is not None:
                 self.scheduler.step(val_loss)
-            # checkpoint best model
-            metric = val_loss if val_loss is not None else train_loss
-            if metric < self.best_loss:
-                self.best_loss = metric
-                self.save_checkpoint(epoch, best=True)
-            elif epoch % checkpoint_freq == 0:
-                self.save_checkpoint(epoch, best=False)
-    
+
+            # Checkpointing logic
+            # Save checkpoint only if it's the best validation loss
+            # metric = val_loss if val_loss is not None else train_loss
+            if val_loss is not None and val_loss < self.best_loss:
+                 self.best_loss = val_loss
+                 self.save_checkpoint(epoch, best=True)
+                 best_val_loss_epoch = val_loss # Store the best loss achieved
+            # elif epoch % checkpoint_freq == 0:
+            #     self.save_checkpoint(epoch, best=False)
+
+            # Optuna Pruning: Report intermediate results
+            if trial is not None and val_loss is not None:
+                trial.report(val_loss, epoch)
+                if trial.should_prune():
+                    logging.info(f"Trial pruned at epoch {epoch}.")
+                    raise optuna.TrialPruned()
+
+        # Return the best validation loss achieved during this fit call
+        return best_val_loss_epoch
+
 
     def save_checkpoint(self, epoch: int, best: bool = False):
         state = {
@@ -148,8 +174,7 @@ class Trainer:
         if best:
             best_path = os.path.join(cwd, "best.pth")
             torch.save(state, best_path)
-            # print(f"Saved best model to {best_path}\n")
-            logging.info(f"Saved BEST checkpoint to {best_path}\n")
+            logging.info(f"Saved BEST checkpoint to {best_path} (Epoch {epoch}, Loss: {self.best_loss:.4f})")
         else:
             # print(f"Saved checkpoint to {path}\n")
             logging.info(f"Saved checkpoint to {path}\n")
