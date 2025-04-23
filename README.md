@@ -156,6 +156,25 @@ python main.py --model /path/to/model.pth --threshold 0.7 --interval 1.0
 | `--threshold` | Fatigue detection threshold (0.0-1.0) | 0.7 |
 | `--interval` | Time between samples (seconds) | 1.0 |
 
+## 📊 8. Mental Fatigue Monitoring Dashboard
+The dashboard provides a visual interface for monitoring mental fatigue in real-time, displaying EEG signals, fatigue scores, and alerting when fatigue is detected.
+From the project root, run:
+```bash
+python dashboard.py
+````
+Like the main script, the dashboard will automatically find and load the most recently trained model.
+
+### Command-line Options
+You can customize the dashboard with the following options:
+```bash
+python dashboard.py --model /path/to/model.pth --threshold 0.7
+````
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--model` | Path to a specific model checkpoint | Auto-detects latest model |
+| `--input_dim` | Input dimension for the model | 129 |
+| `--threshold` | Fatigue detection threshold (0.0-1.0) | 0.7 |
+
 ## Full hierarchy
 
 ```
